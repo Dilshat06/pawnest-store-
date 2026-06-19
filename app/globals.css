@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --color-darkbrown: #2d1b12;   /* тёмный фон (hero overlay, footer) */
+  --color-cream:     #fff8f0;   /* тёплый белый фон */
+  --color-primary:   #ff7043;   /* оранжевый */
+  --color-amber:     #ffa726;   /* янтарный акцент */
+  --color-text:      #4e342e;   /* тёмно-коричневый текст */
+  --color-card:      #ffffff;   /* карточки */
+}
+
+@theme inline {
+  --color-darkbrown: var(--color-darkbrown);
+  --color-cream:     var(--color-cream);
+  --color-primary:   var(--color-primary);
+  --color-amber:     var(--color-amber);
+  --color-text:      var(--color-text);
+  --color-card:      var(--color-card);
+  --font-inter:      var(--font-inter);
+  --font-playfair:   var(--font-playfair);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.font-playfair {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+.font-inter {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+::-webkit-scrollbar        { width: 6px }
+::-webkit-scrollbar-track  { background: #fff8f0 }
+::-webkit-scrollbar-thumb  { background: #ff7043; border-radius: 3px }
