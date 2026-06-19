@@ -44,7 +44,10 @@ export async function POST(req: NextRequest) {
         data:  { status: "PAID" },
         include: {
           items: {
-            include: { variant: true, product: { select: { title: true } } }
+            include: {
+              variant: true,
+              product: { select: { title: true, variants: true } },
+            }
           }
         },
       })
@@ -68,12 +71,13 @@ export async function POST(req: NextRequest) {
         city: string; address: string; zipCode: string
       }
 
+      // Если вариант не был указан при заказе — берём первый доступный SKU товара
       const cjProducts = order.items
-        .filter((item) => item.variant?.sku)
         .map((item) => ({
-          vid:      item.variant!.sku,
+          vid:      item.variant?.sku ?? item.product.variants[0]?.sku,
           quantity: item.quantity,
         }))
+        .filter((item): item is { vid: string; quantity: number } => Boolean(item.vid))
 
       if (cjProducts.length > 0) {
         const cjResponse = await cj.createOrder({

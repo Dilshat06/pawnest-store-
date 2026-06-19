@@ -28,7 +28,15 @@ export default function ProductPage() {
   useEffect(() => {
     fetch(`/api/products/${id}`)
       .then((r) => r.json())
-      .then((data) => { setProduct(data); setLoading(false) })
+      .then((data) => {
+        setProduct(data)
+        setLoading(false)
+        // Если у товара есть варианты — выбираем первый по умолчанию,
+        // иначе CJ не сможет принять заказ без указания SKU варианта
+        if (data?.variants?.length > 0) {
+          setVariant(data.variants[0].id)
+        }
+      })
       .catch(() => setLoading(false))
   }, [id])
 
