@@ -88,7 +88,10 @@ export default function CartPage() {
         window.dispatchEvent(new Event("cart-updated"))
         window.location.href = data.checkoutUrl
       } else {
-        alert("Checkout error: " + (data.error ?? "unknown error"))
+        const message = Array.isArray(data.error)
+          ? data.error.map((e: { message: string }) => e.message).join(", ")
+          : data.error ?? "unknown error"
+        alert("Checkout error: " + message)
       }
     } catch {
       alert("Network error. Please try again.")

@@ -14,7 +14,7 @@ const AddressSchema = z.object({
 
 const OrderItemSchema = z.object({
   productId: z.string().min(1),
-  variantId: z.string().optional(),
+  variantId: z.string().nullable().optional(),
   quantity:  z.number().int().positive(),
 })
 
