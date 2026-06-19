@@ -4,12 +4,14 @@ import { stripe } from "@/lib/stripe"
 import { z } from "zod"
 
 const AddressSchema = z.object({
-  name:    z.string().min(1),
-  phone:   z.string().min(1),
-  country: z.string().min(2),
-  city:    z.string().min(1),
-  address: z.string().min(1),
-  zipCode: z.string().min(1),
+  name:        z.string().min(1),
+  phone:       z.string().min(1),
+  countryCode: z.string().length(2), // ISO-код, нужен для CJ Dropshipping
+  country:     z.string().min(2),
+  province:    z.string().min(1),
+  city:        z.string().min(1),
+  address:     z.string().min(1),
+  zipCode:     z.string().min(1),
 })
 
 const OrderItemSchema = z.object({

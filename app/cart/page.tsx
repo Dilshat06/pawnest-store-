@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import ShopHeader from "@/components/ShopHeader"
+import { COUNTRIES } from "@/lib/countries"
 
 interface CartItem {
   key:       string
@@ -19,7 +20,8 @@ interface CheckoutForm {
   customerEmail: string
   customerName:  string
   phone:         string
-  country:       string
+  countryCode:   string
+  province:      string
   city:          string
   address:       string
   zipCode:       string
@@ -30,7 +32,7 @@ export default function CartPage() {
   const [loading, setLoading]   = useState(false)
   const [form, setForm]         = useState<CheckoutForm>({
     customerEmail: "", customerName: "", phone: "",
-    country: "", city: "", address: "", zipCode: "",
+    countryCode: "US", province: "", city: "", address: "", zipCode: "",
   })
 
   useEffect(() => {
@@ -60,6 +62,8 @@ export default function CartPage() {
     setLoading(true)
 
     try {
+      const countryName = COUNTRIES.find((c) => c.code === form.countryCode)?.name ?? form.countryCode
+
       const res = await fetch("/api/orders", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,12 +71,14 @@ export default function CartPage() {
           customerEmail: form.customerEmail,
           customerName:  form.customerName,
           address: {
-            name:    form.customerName,
-            phone:   form.phone,
-            country: form.country,
-            city:    form.city,
-            address: form.address,
-            zipCode: form.zipCode,
+            name:        form.customerName,
+            phone:       form.phone,
+            countryCode: form.countryCode,
+            country:     countryName,
+            province:    form.province,
+            city:        form.city,
+            address:     form.address,
+            zipCode:     form.zipCode,
           },
           items: cart.map((item) => ({
             productId: item.productId,
@@ -153,27 +159,82 @@ export default function CartPage() {
             <div className="bg-card rounded-2xl border border-text/10 shadow-sm p-6 sticky top-20">
               <h2 className="font-playfair text-lg font-bold text-text mb-5">Checkout</h2>
               <form onSubmit={handleCheckout} className="space-y-3">
-                {[
-                  { name: "customerName",  label: "Name",        type: "text",  placeholder: "Jane Doe"          },
-                  { name: "customerEmail", label: "Email",       type: "email", placeholder: "jane@example.com"  },
-                  { name: "phone",         label: "Phone",       type: "tel",   placeholder: "+1 555 000 0000"   },
-                  { name: "country",       label: "Country",     type: "text",  placeholder: "United States"     },
-                  { name: "city",          label: "City",        type: "text",  placeholder: "New York"          },
-                  { name: "address",       label: "Address",     type: "text",  placeholder: "123 Main St"       },
-                  { name: "zipCode",       label: "ZIP Code",    type: "text",  placeholder: "10001"             },
-                ].map((field) => (
-                  <div key={field.name}>
-                    <label className="text-xs font-medium text-text/60 block mb-1">{field.label}</label>
-                    <input
-                      type={field.type}
-                      placeholder={field.placeholder}
-                      required
-                      value={form[field.name as keyof CheckoutForm]}
-                      onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
-                      className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                  </div>
-                ))}
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">Name</label>
+                  <input
+                    type="text" placeholder="Jane Doe" required
+                    value={form.customerName}
+                    onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">Email</label>
+                  <input
+                    type="email" placeholder="jane@example.com" required
+                    value={form.customerEmail}
+                    onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">Phone</label>
+                  <input
+                    type="tel" placeholder="+1 555 000 0000" required
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">Country</label>
+                  <select
+                    required
+                    value={form.countryCode}
+                    onChange={(e) => setForm({ ...form, countryCode: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-card"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">State / Province</label>
+                  <input
+                    type="text" placeholder="New York" required
+                    value={form.province}
+                    onChange={(e) => setForm({ ...form, province: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">City</label>
+                  <input
+                    type="text" placeholder="New York" required
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">Address</label>
+                  <input
+                    type="text" placeholder="123 Main St" required
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-text/60 block mb-1">ZIP Code</label>
+                  <input
+                    type="text" placeholder="10001" required
+                    value={form.zipCode}
+                    onChange={(e) => setForm({ ...form, zipCode: e.target.value })}
+                    className="w-full border border-text/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
 
                 <div className="border-t border-text/10 pt-4 mt-4">
                   <div className="flex justify-between text-sm text-text/50 mb-1">

@@ -80,26 +80,66 @@ class CJClient {
     return list.reduce((sum: number, w: Record<string, unknown>) => sum + Number(w.storageNum ?? 0), 0)
   }
 
+  // Получить доступные способы доставки для товаров и страны назначения
+  async getFreightOptions(endCountryCode: string, products: { vid: string; quantity: number }[]) {
+    const token = await this.getToken()
+    const res = await fetch(`${CJ_BASE_URL}/logistic/freightCalculate`, {
+      method: "POST",
+      headers: { "CJ-Access-Token": token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startCountryCode: "CN",
+        endCountryCode,
+        products,
+      }),
+    })
+    if (!res.ok) throw new Error(`CJ getFreightOptions failed: ${res.status}`)
+    const json = await res.json()
+    return Array.isArray(json.data) ? json.data : []
+  }
+
   async createOrder(orderData: {
     orderId: string
     products: { vid: string; quantity: number }[]
     address: {
       name: string
       phone: string
+      countryCode: string // ISO 2-буквенный код, например "US"
       country: string
+      province: string
       city: string
       address: string
       zipCode: string
     }
   }) {
     const token = await this.getToken()
+
+    // Узнаём дешёвый рабочий способ доставки для этого направления
+    const freightOptions = await this.getFreightOptions(orderData.address.countryCode, orderData.products)
+    if (freightOptions.length === 0) {
+      throw new Error(`CJ: нет доступных способов доставки в ${orderData.address.countryCode}`)
+    }
+    const logisticName = freightOptions[0].logisticName
+
     const res = await fetch(`${CJ_BASE_URL}/shopping/order/createOrder`, {
       method: "POST",
       headers: {
         "CJ-Access-Token": token,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(orderData),
+      body: JSON.stringify({
+        orderId:              orderData.orderId,
+        fromCountryCode:      "CN",
+        logisticName,
+        products:             orderData.products,
+        shippingCustomerName: orderData.address.name,
+        shippingPhone:        orderData.address.phone,
+        shippingCountryCode:  orderData.address.countryCode,
+        shippingCountry:      orderData.address.country,
+        shippingProvince:     orderData.address.province,
+        shippingCity:         orderData.address.city,
+        shippingAddress:      orderData.address.address,
+        shippingZip:          orderData.address.zipCode,
+      }),
     })
     if (!res.ok) throw new Error(`CJ createOrder failed: ${res.status}`)
     return res.json()

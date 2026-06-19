@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
 
       // Отправляем заказ в CJ Dropshipping
       const address = order.address as {
-        name: string; phone: string; country: string
-        city: string; address: string; zipCode: string
+        name: string; phone: string; countryCode: string; country: string
+        province: string; city: string; address: string; zipCode: string
       }
 
       // Если вариант не был указан при заказе — берём первый доступный SKU товара
@@ -86,13 +86,14 @@ export async function POST(req: NextRequest) {
           address,
         })
 
-        // Сохраняем CJ Order ID и меняем статус на PROCESSING
-        if (cjResponse.data?.orderId) {
+        // CJ возвращает ID созданного заказа прямо в поле data (строка)
+        const cjOrderId: string | undefined = cjResponse.data
+        if (cjOrderId) {
           await prisma.order.update({
             where: { id: orderId },
             data: {
-              cjOrderId: cjResponse.data.orderId,
-              status:    "PROCESSING",
+              cjOrderId,
+              status: "PROCESSING",
             },
           })
         }
