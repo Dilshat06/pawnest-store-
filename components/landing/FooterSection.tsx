@@ -22,9 +22,10 @@ const navGroups = [
   {
     title: "Company",
     links: [
-      { label: "About",  href: "#about" },
-      { label: "Sustainability", href: "#" },
-      { label: "Contact", href: "#" },
+      { label: "About",         href: "#about" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Refund Policy", href: "/refund-policy" },
     ],
   },
 ]
@@ -91,8 +92,8 @@ export default function FooterSection() {
             "Every paw deserves a soft place to land."
           </p>
           <div className="flex gap-6 text-cream/30 text-xs">
-            <a href="#" className="hover:text-cream transition-colors">Privacy</a>
-            <a href="#" className="hover:text-cream transition-colors">Terms</a>
+            <Link href="/privacy" className="hover:text-cream transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-cream transition-colors">Terms</Link>
           </div>
         </div>
       </div>
