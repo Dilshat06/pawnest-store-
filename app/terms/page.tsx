@@ -17,7 +17,7 @@ export default function TermsPage() {
 
       <h2>2. Orders and Payment</h2>
       <p>
-        All payments are processed securely through PayPal. By placing an order, you confirm
+        All payments are processed securely through Stripe. By placing an order, you confirm
         that the payment information provided is accurate and that you are authorized to use the
         payment method. We reserve the right to refuse or cancel any order at our discretion,
         including in cases of suspected fraud or pricing errors.

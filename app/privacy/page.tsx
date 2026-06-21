@@ -18,7 +18,7 @@ export default function PrivacyPage() {
       </ul>
       <p>
         Payment card details are never stored on our servers — all payments are processed
-        securely by <a href="https://www.paypal.com/us/legalhub/paypal/privacy-full" target="_blank" rel="noopener noreferrer">PayPal</a>,
+        securely by <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">Stripe</a>,
         a PCI-DSS compliant payment processor.
       </p>
 
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
       <h2>3. Third-Party Services</h2>
       <p>We share limited data with the following third parties strictly to operate our store:</p>
       <ul>
-        <li><strong>PayPal</strong> — payment processing</li>
+        <li><strong>Stripe</strong> — payment processing</li>
         <li><strong>CJ Dropshipping</strong> — order fulfillment and shipping</li>
         <li><strong>Email service provider</strong> — transactional order emails</li>
       </ul>

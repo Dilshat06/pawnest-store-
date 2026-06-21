@@ -8,14 +8,14 @@ vi.mock("@/lib/prisma", () => ({
   },
 }))
 
-vi.mock("@/lib/paypal", () => ({
-  paypal: {
-    createOrder: vi.fn(),
+vi.mock("@/lib/stripe", () => ({
+  stripe: {
+    checkout: { sessions: { create: vi.fn() } },
   },
 }))
 
 import { prisma } from "@/lib/prisma"
-import { paypal } from "@/lib/paypal"
+import { stripe } from "@/lib/stripe"
 import { POST } from "./route"
 
 const validBody = {
@@ -72,7 +72,7 @@ describe("POST /api/orders stock validation", () => {
     expect(prisma.order.create).not.toHaveBeenCalled()
   })
 
-  it("creates the order and a PayPal order when stock is sufficient", async () => {
+  it("creates the order and a Stripe checkout session when stock is sufficient", async () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue([
       { id: "prod1", title: "Dog Bed", price: 20, stock: 10, variants: [] },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,9 +82,9 @@ describe("POST /api/orders stock validation", () => {
       items: [{ price: 20, quantity: 3, product: { title: "Dog Bed", images: [] } }],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
-    vi.mocked(paypal.createOrder).mockResolvedValue({
-      id: "paypal-order-1",
-      links: [{ rel: "approve", href: "https://paypal.test/approve" }],
+    vi.mocked(stripe.checkout.sessions.create).mockResolvedValue({
+      id: "cs_test_1",
+      url: "https://stripe.test/checkout",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
 
@@ -92,15 +92,15 @@ describe("POST /api/orders stock validation", () => {
     const data = await res.json()
 
     expect(res.status).toBe(201)
-    expect(data.approveUrl).toBe("https://paypal.test/approve")
+    expect(data.checkoutUrl).toBe("https://stripe.test/checkout")
     expect(prisma.order.create).toHaveBeenCalledTimes(1)
     expect(prisma.order.update).toHaveBeenCalledWith({
       where: { id: "order1" },
-      data:  { paypalOrderId: "paypal-order-1" },
+      data:  { stripePaymentId: "cs_test_1" },
     })
   })
 
-  it("fails when PayPal doesn't return an approve link", async () => {
+  it("fails when Stripe doesn't return a checkout URL", async () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue([
       { id: "prod1", title: "Dog Bed", price: 20, stock: 10, variants: [] },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -111,7 +111,7 @@ describe("POST /api/orders stock validation", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(paypal.createOrder).mockResolvedValue({ id: "paypal-order-1", links: [] } as any)
+    vi.mocked(stripe.checkout.sessions.create).mockResolvedValue({ id: "cs_test_1", url: null } as any)
 
     const res = await POST(makeRequest(validBody))
 

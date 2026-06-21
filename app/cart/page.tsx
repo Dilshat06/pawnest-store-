@@ -101,10 +101,10 @@ export default function CartPage() {
       })
 
       const data = await res.json()
-      if (data.approveUrl) {
+      if (data.checkoutUrl) {
         await fetch("/api/cart", { method: "DELETE" })
         window.dispatchEvent(new Event("cart-updated"))
-        window.location.href = data.approveUrl
+        window.location.href = data.checkoutUrl
       } else {
         const message = Array.isArray(data.error)
           ? data.error.map((e: { message: string }) => e.message).join(", ")
@@ -270,7 +270,7 @@ export default function CartPage() {
                     disabled={loading}
                     className="w-full bg-primary text-cream font-bold py-3.5 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed tracking-wide uppercase text-sm"
                   >
-                    {loading ? "Creating order..." : "Pay with PayPal →"}
+                    {loading ? "Creating order..." : "Pay with Card →"}
                   </button>
                 </div>
               </form>

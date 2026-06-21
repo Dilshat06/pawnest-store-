@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { prisma } from "@/lib/prisma"
-import { paypal } from "@/lib/paypal"
+import { stripe } from "@/lib/stripe"
 import { z } from "zod"
 
 const AddressSchema = z.object({
@@ -94,35 +94,38 @@ export async function POST(req: NextRequest) {
       include: { items: { include: { product: true } } },
     })
 
-    // Создаём PayPal Order. Деньги списываются только после капчура на
-    // возврате клиента — см. /api/paypal/capture
-    const paypalOrder = await paypal.createOrder({
-      orderId:    order.id,
-      totalPrice: order.totalPrice,
-      items: order.items.map((item) => ({
-        title:    item.product.title,
+    // Создаём Stripe Checkout Session. Заказ помечается PAID только по
+    // вебхуку checkout.session.completed — см. /api/webhook/stripe
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: data.customerEmail,
+      line_items: order.items.map((item) => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name:   item.product.title,
+            images: item.product.images.slice(0, 1),
+          },
+          unit_amount: Math.round(item.price * 100),
+        },
         quantity: item.quantity,
-        price:    item.price,
       })),
-      address:    data.address,
-      returnUrl:  `${process.env.NEXT_PUBLIC_SITE_URL}/api/paypal/capture?orderId=${order.id}`,
-      cancelUrl:  `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
+      metadata: { orderId: order.id },
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?orderId=${order.id}&token=${order.accessToken}`,
+      cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
     })
 
-    const approveUrl: string | undefined = paypalOrder.links?.find(
-      (l: { rel: string; href: string }) => l.rel === "approve"
-    )?.href
-
-    if (!approveUrl) {
-      throw new Error("PayPal не вернул ссылку approve")
+    if (!session.url) {
+      throw new Error("Stripe не вернул checkout URL")
     }
 
     await prisma.order.update({
       where: { id: order.id },
-      data:  { paypalOrderId: paypalOrder.id },
+      data:  { stripePaymentId: session.id },
     })
 
-    return NextResponse.json({ orderId: order.id, approveUrl }, { status: 201 })
+    return NextResponse.json({ orderId: order.id, checkoutUrl: session.url }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })

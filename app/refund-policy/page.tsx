@@ -32,7 +32,7 @@ export default function RefundPolicyPage() {
       <h2>4. Refund Processing</h2>
       <p>
         Once your return is received and inspected, we will notify you of the approval status of
-        your refund. Approved refunds are issued to your original payment method via PayPal
+        your refund. Approved refunds are issued to your original payment method via Stripe
         within 5–10 business days.
       </p>
 
