@@ -20,7 +20,7 @@ export default function RefundPolicyPage() {
       <p>
         If you simply changed your mind, you may request a return within 14 days of delivery,
         provided the item is unused and in its original packaging. Return shipping costs are the
-        customer's responsibility unless the item was defective.
+        customer&apos;s responsibility unless the item was defective.
       </p>
 
       <h2>3. Non-Returnable Items</h2>
@@ -32,7 +32,7 @@ export default function RefundPolicyPage() {
       <h2>4. Refund Processing</h2>
       <p>
         Once your return is received and inspected, we will notify you of the approval status of
-        your refund. Approved refunds are issued to your original payment method via Stripe
+        your refund. Approved refunds are issued to your original payment method via PayPal
         within 5–10 business days.
       </p>
 

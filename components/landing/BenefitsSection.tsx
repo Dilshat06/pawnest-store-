@@ -23,7 +23,7 @@ export default function BenefitsSection() {
   return (
     <section id="community" className="bg-darkbrown py-28 px-6 lg:px-10 overflow-hidden">
       <div className="max-w-7xl mx-auto space-y-24">
-        {benefits.map((b, i) => (
+        {benefits.map((b) => (
           <motion.div
             key={b.title}
             initial={{ opacity: 0, y: 50 }}

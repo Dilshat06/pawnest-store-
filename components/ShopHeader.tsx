@@ -8,8 +8,13 @@ export default function ShopHeader() {
 
   useEffect(() => {
     const updateCount = () => {
-      const cart = JSON.parse(localStorage.getItem("cart") ?? "[]")
-      setCartCount(cart.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0))
+      fetch("/api/cart")
+        .then((r) => r.json())
+        .then((data) => {
+          const items: { quantity: number }[] = data.items ?? []
+          setCartCount(items.reduce((sum, item) => sum + item.quantity, 0))
+        })
+        .catch(() => {})
     }
     updateCount()
     window.addEventListener("cart-updated", updateCount)

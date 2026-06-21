@@ -4,6 +4,7 @@ const CJ_BASE_URL = "https://developers.cjdropshipping.com/api2.0/v1"
 const tokenCache = {
   value: null as string | null,
   expiresAt: 0,
+  pending: null as Promise<string> | null,
 }
 
 class CJClient {
@@ -12,25 +13,39 @@ class CJClient {
       return tokenCache.value
     }
 
-    const res = await fetch(`${CJ_BASE_URL}/authentication/getAccessToken`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: process.env.CJ_EMAIL,
-        password: process.env.CJ_PASSWORD,
-      }),
-    })
-
-    if (!res.ok) throw new Error(`CJ auth failed: ${res.status}`)
-
-    const data = await res.json()
-    if (!data.data?.accessToken) {
-      throw new Error(`CJ auth error: ${data.message ?? "no token"}`)
+    // Если несколько вызовов одновременно увидели протухший токен — пусть
+    // дождутся одного и того же запроса вместо параллельных хитов в CJ auth
+    if (tokenCache.pending) {
+      return tokenCache.pending
     }
 
-    tokenCache.value = data.data.accessToken
-    tokenCache.expiresAt = Date.now() + 23 * 60 * 60 * 1000 // 23 часа
-    return tokenCache.value!
+    tokenCache.pending = (async () => {
+      try {
+        const res = await fetch(`${CJ_BASE_URL}/authentication/getAccessToken`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: process.env.CJ_EMAIL,
+            password: process.env.CJ_PASSWORD,
+          }),
+        })
+
+        if (!res.ok) throw new Error(`CJ auth failed: ${res.status}`)
+
+        const data = await res.json()
+        if (!data.data?.accessToken) {
+          throw new Error(`CJ auth error: ${data.message ?? "no token"}`)
+        }
+
+        tokenCache.value = data.data.accessToken
+        tokenCache.expiresAt = Date.now() + 23 * 60 * 60 * 1000 // 23 часа
+        return tokenCache.value!
+      } finally {
+        tokenCache.pending = null
+      }
+    })()
+
+    return tokenCache.pending
   }
 
   async getProducts(page = 1, limit = 20) {

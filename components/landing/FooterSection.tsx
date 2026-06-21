@@ -49,7 +49,7 @@ export default function FooterSection() {
             </Link>
             <p className="text-cream/50 text-sm leading-relaxed max-w-xs">
               Comfort made for paws. Thoughtfully crafted<br />
-              essentials for your pet's happiest moments.
+              essentials for your pet&apos;s happiest moments.
             </p>
             <div className="flex items-center gap-4 pt-2">
               {socials.map((s) => (
@@ -89,7 +89,7 @@ export default function FooterSection() {
             © {new Date().getFullYear()} PawNest. All rights reserved.
           </p>
           <p className="text-cream/20 text-xs italic font-playfair">
-            "Every paw deserves a soft place to land."
+            &quot;Every paw deserves a soft place to land.&quot;
           </p>
           <div className="flex gap-6 text-cream/30 text-xs">
             <Link href="/privacy" className="hover:text-cream transition-colors">Privacy</Link>

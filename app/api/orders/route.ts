@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
+import { randomBytes } from "crypto"
 import { prisma } from "@/lib/prisma"
-import { stripe } from "@/lib/stripe"
+import { paypal } from "@/lib/paypal"
 import { z } from "zod"
 
 const AddressSchema = z.object({
@@ -27,7 +28,7 @@ const CreateOrderSchema = z.object({
   items:         z.array(OrderItemSchema).min(1),
 })
 
-// POST /api/orders — создать заказ и получить Stripe ссылку на оплату
+// POST /api/orders — создать заказ и получить PayPal ссылку на оплату
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -42,6 +43,23 @@ export async function POST(req: NextRequest) {
 
     if (products.length !== productIds.length) {
       return NextResponse.json({ error: "Один или несколько товаров не найдены" }, { status: 400 })
+    }
+
+    // Проверяем остаток на складе перед оплатой
+    for (const item of data.items) {
+      const product = products.find((p) => p.id === item.productId)!
+      const variant = item.variantId
+        ? product.variants.find((v) => v.id === item.variantId)
+        : null
+
+      if (item.variantId && !variant) {
+        return NextResponse.json({ error: `Вариант товара не найден: ${product.title}` }, { status: 400 })
+      }
+
+      const availableStock = variant ? variant.stock : product.stock
+      if (availableStock < item.quantity) {
+        return NextResponse.json({ error: `Недостаточно товара на складе: ${product.title}` }, { status: 400 })
+      }
     }
 
     // Считаем итоговую сумму
@@ -62,72 +80,54 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // Создаём заказ в БД со статусом PENDING
+    // Создаём заказ в БД со статусом PENDING. accessToken — случайный секрет
+    // для безпарольной страницы статуса заказа (ссылка приходит в письме)
     const order = await prisma.order.create({
       data: {
         customerEmail: data.customerEmail,
         customerName:  data.customerName,
         address:       data.address,
         totalPrice,
+        accessToken: randomBytes(24).toString("hex"),
         items: { create: orderItems },
       },
       include: { items: { include: { product: true } } },
     })
 
-    // Создаём Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      customer_email: data.customerEmail,
-      line_items: order.items.map((item) => ({
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name:   item.product.title,
-            images: item.product.images.slice(0, 1),
-          },
-          unit_amount: Math.round(item.price * 100), // в центах
-        },
+    // Создаём PayPal Order. Деньги списываются только после капчура на
+    // возврате клиента — см. /api/paypal/capture
+    const paypalOrder = await paypal.createOrder({
+      orderId:    order.id,
+      totalPrice: order.totalPrice,
+      items: order.items.map((item) => ({
+        title:    item.product.title,
         quantity: item.quantity,
+        price:    item.price,
       })),
-      metadata: { orderId: order.id },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?orderId=${order.id}`,
-      cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
+      address:    data.address,
+      returnUrl:  `${process.env.NEXT_PUBLIC_SITE_URL}/api/paypal/capture?orderId=${order.id}`,
+      cancelUrl:  `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
     })
 
-    // Сохраняем Stripe Payment ID
+    const approveUrl: string | undefined = paypalOrder.links?.find(
+      (l: { rel: string; href: string }) => l.rel === "approve"
+    )?.href
+
+    if (!approveUrl) {
+      throw new Error("PayPal не вернул ссылку approve")
+    }
+
     await prisma.order.update({
       where: { id: order.id },
-      data:  { stripePaymentId: session.id },
+      data:  { paypalOrderId: paypalOrder.id },
     })
 
-    return NextResponse.json({ orderId: order.id, checkoutUrl: session.url }, { status: 201 })
+    return NextResponse.json({ orderId: order.id, approveUrl }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })
     }
     console.error("[POST /api/orders]", error)
     return NextResponse.json({ error: "Ошибка создания заказа" }, { status: 500 })
-  }
-}
-
-// GET /api/orders?email=... — получить заказы покупателя
-export async function GET(req: NextRequest) {
-  try {
-    const email = new URL(req.url).searchParams.get("email")
-    if (!email) {
-      return NextResponse.json({ error: "Email обязателен" }, { status: 400 })
-    }
-
-    const orders = await prisma.order.findMany({
-      where:   { customerEmail: email },
-      include: { items: { include: { product: { select: { title: true, images: true } } } } },
-      orderBy: { createdAt: "desc" },
-    })
-
-    return NextResponse.json(orders)
-  } catch (error) {
-    console.error("[GET /api/orders]", error)
-    return NextResponse.json({ error: "Ошибка получения заказов" }, { status: 500 })
   }
 }

@@ -4,9 +4,9 @@ export default function PrivacyPage() {
   return (
     <LegalLayout title="Privacy Policy" updated="June 19, 2026">
       <p>
-        PawNest ("we", "us", "our") respects your privacy. This Privacy Policy explains what
+        PawNest (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) respects your privacy. This Privacy Policy explains what
         information we collect, how we use it, and your rights regarding that information when
-        you visit or make a purchase on pawnest-store-s9fk.vercel.app (the "Site").
+        you visit or make a purchase on pawnest-store-s9fk.vercel.app (the &quot;Site&quot;).
       </p>
 
       <h2>1. Information We Collect</h2>
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
       </ul>
       <p>
         Payment card details are never stored on our servers — all payments are processed
-        securely by <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">Stripe</a>,
+        securely by <a href="https://www.paypal.com/us/legalhub/paypal/privacy-full" target="_blank" rel="noopener noreferrer">PayPal</a>,
         a PCI-DSS compliant payment processor.
       </p>
 
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
       <h2>3. Third-Party Services</h2>
       <p>We share limited data with the following third parties strictly to operate our store:</p>
       <ul>
-        <li><strong>Stripe</strong> — payment processing</li>
+        <li><strong>PayPal</strong> — payment processing</li>
         <li><strong>CJ Dropshipping</strong> — order fulfillment and shipping</li>
         <li><strong>Email service provider</strong> — transactional order emails</li>
       </ul>

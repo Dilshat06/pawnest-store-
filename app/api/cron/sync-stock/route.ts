@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { cj } from "@/lib/cj"
 
+// Цикл по товарам с CJ-запросами на каждый может не успеть за дефолтный таймаут Vercel
+export const maxDuration = 60
+
 // GET /api/cron/sync-stock — обновляет остатки и закупочные цены всех импортированных товаров из CJ
 // Защищён секретом, вызывается планировщиком (Vercel Cron / внешний cron) раз в день
 export async function GET(req: NextRequest) {
@@ -11,8 +14,7 @@ export async function GET(req: NextRequest) {
   }
 
   const products = await prisma.product.findMany({
-    where:   { isActive: true },
-    include: { variants: true },
+    where: { isActive: true },
   })
 
   const results: { productId: string; status: string }[] = []

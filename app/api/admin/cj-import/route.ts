@@ -3,6 +3,10 @@ import { cj } from "@/lib/cj"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
+// Запрос деталей товара + параллельные запросы остатков по каждому варианту
+// могут не успеть за дефолтный таймаут Vercel для товаров с большим числом вариантов
+export const maxDuration = 60
+
 const ImportSchema = z.object({
   cjProductId: z.string().min(1),
   category:    z.string().min(1),

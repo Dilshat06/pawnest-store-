@@ -98,7 +98,7 @@ export default function StatsSection() {
               transition={{ duration: 0.7, delay: i * 0.15 }}
               className="bg-text/5 rounded-2xl p-8 border border-text/10 relative"
             >
-              <span className="font-playfair text-6xl text-amber/40 absolute top-4 left-6 leading-none select-none">"</span>
+              <span className="font-playfair text-6xl text-amber/40 absolute top-4 left-6 leading-none select-none">&quot;</span>
               <p className="text-text/70 text-sm leading-relaxed mt-6 mb-6 relative z-10 italic">
                 {t.quote}
               </p>

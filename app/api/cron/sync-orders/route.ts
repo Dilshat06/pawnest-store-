@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { cj } from "@/lib/cj"
-import { sendShippingNotificationEmail } from "@/lib/email"
+import { forwardOrderToCJ } from "@/lib/order-fulfillment"
+import { sendShippingNotificationEmail, sendAdminAlertEmail } from "@/lib/email"
+
+// CJ-запросы по каждому заказу в цикле могут не успеть за дефолтный таймаут Vercel
+export const maxDuration = 60
 
 // GET /api/cron/sync-orders — проверяет статус заказов в CJ, обновляет трек-номер и статус доставки
 // Защищён секретом, вызывается планировщиком раз в несколько часов
@@ -11,14 +15,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const results: { orderId: string; status: string }[] = []
+
+  // Заказы, оплаченные, но так и не отправленные в CJ (например из-за временного
+  // сбоя CJ API или нулевого баланса) — пробуем переотправить
+  const stuckOrders = await prisma.order.findMany({
+    where: { status: "PAID", cjOrderId: null },
+  })
+
+  for (const order of stuckOrders) {
+    try {
+      await forwardOrderToCJ(order.id)
+      results.push({ orderId: order.id, status: "forwarded_to_cj" })
+    } catch (error) {
+      console.error(`[sync-orders] Не удалось переотправить заказ ${order.id} в CJ:`, error)
+      results.push({ orderId: order.id, status: "cj_forward_error" })
+      await sendAdminAlertEmail({
+        subject: `Order ${order.id} still stuck — CJ retry failed`,
+        message: `The sync-orders cron retried forwarding order ${order.id} to CJ and it failed again. You can retry it manually from /admin/orders. Error: ${error instanceof Error ? error.message : String(error)}`,
+      }).catch((err) => console.error("[sync-orders] Alert email error:", err))
+    }
+  }
+
   const orders = await prisma.order.findMany({
     where: {
       cjOrderId: { not: null },
       status:    { in: ["PROCESSING", "SHIPPED"] },
     },
   })
-
-  const results: { orderId: string; status: string }[] = []
 
   for (const order of orders) {
     try {
@@ -56,6 +80,7 @@ export async function GET(req: NextRequest) {
           await sendShippingNotificationEmail({
             to:             order.customerEmail,
             orderId:        order.id,
+            accessToken:    order.accessToken,
             customerName:   order.customerName,
             trackingNumber,
           }).catch((err) => console.error("[sync-orders] Email error:", err))

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 // Защищаем /admin и /api/admin/* паролем (Basic Auth)
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const auth = req.headers.get("authorization")
 
   if (auth) {

@@ -24,6 +24,7 @@ export default function ProductPage() {
   const [selectedVariant, setVariant] = useState<string | null>(null)
   const [quantity, setQuantity]       = useState(1)
   const [added, setAdded]             = useState(false)
+  const [adding, setAdding]           = useState(false)
 
   useEffect(() => {
     fetch(`/api/products/${id}`)
@@ -64,21 +65,27 @@ export default function ProductPage() {
     ? product.variants.find((v) => v.id === selectedVariant)?.price ?? product.price
     : product.price
 
-  const addToCart = () => {
-    const cart = JSON.parse(localStorage.getItem("cart") ?? "[]")
-    const key  = `${product.id}-${selectedVariant ?? "default"}`
-    const idx  = cart.findIndex((i: { key: string }) => i.key === key)
-
-    if (idx >= 0) {
-      cart[idx].quantity += quantity
-    } else {
-      cart.push({ key, productId: product.id, variantId: selectedVariant, title: product.title, price: currentPrice, image: product.images[0] ?? "", quantity })
+  const addToCart = async () => {
+    setAdding(true)
+    try {
+      const res = await fetch("/api/cart", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, variantId: selectedVariant, quantity }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error ?? "Could not add to cart")
+        return
+      }
+      window.dispatchEvent(new Event("cart-updated"))
+      setAdded(true)
+      setTimeout(() => setAdded(false), 2000)
+    } catch {
+      alert("Network error. Please try again.")
+    } finally {
+      setAdding(false)
     }
-
-    localStorage.setItem("cart", JSON.stringify(cart))
-    window.dispatchEvent(new Event("cart-updated"))
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
   }
 
   const avgRating = product.reviews.length
@@ -177,14 +184,14 @@ export default function ProductPage() {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={addToCart}
-                disabled={product.stock === 0}
+                disabled={product.stock === 0 || adding}
                 className={`flex-1 py-3.5 rounded-xl font-bold text-cream tracking-wide uppercase text-sm transition-colors ${added ? "bg-green-600" : "bg-primary hover:bg-primary/90"} disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {added ? "✓ Added!" : product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                {added ? "✓ Added!" : product.stock === 0 ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
               </button>
               <button
-                onClick={() => { addToCart(); router.push("/cart") }}
-                disabled={product.stock === 0}
+                onClick={async () => { await addToCart(); router.push("/cart") }}
+                disabled={product.stock === 0 || adding}
                 className="flex-1 py-3.5 rounded-xl font-bold border-2 border-primary text-primary hover:bg-primary/10 tracking-wide uppercase text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Buy Now

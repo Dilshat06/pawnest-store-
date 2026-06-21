@@ -4,7 +4,7 @@ export default function TermsPage() {
   return (
     <LegalLayout title="Terms of Service" updated="June 19, 2026">
       <p>
-        Welcome to PawNest. By accessing or using this website (the "Site") and placing an
+        Welcome to PawNest. By accessing or using this website (the &quot;Site&quot;) and placing an
         order, you agree to be bound by the following Terms of Service.
       </p>
 
@@ -17,7 +17,7 @@ export default function TermsPage() {
 
       <h2>2. Orders and Payment</h2>
       <p>
-        All payments are processed securely through Stripe. By placing an order, you confirm
+        All payments are processed securely through PayPal. By placing an order, you confirm
         that the payment information provided is accurate and that you are authorized to use the
         payment method. We reserve the right to refuse or cancel any order at our discretion,
         including in cases of suspected fraud or pricing errors.

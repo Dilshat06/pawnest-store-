@@ -7,7 +7,7 @@ import ShopHeader from "@/components/ShopHeader"
 import { COUNTRIES } from "@/lib/countries"
 
 interface CartItem {
-  key:       string
+  id:        string
   productId: string
   variantId: string | null
   title:     string
@@ -28,31 +28,43 @@ interface CheckoutForm {
 }
 
 export default function CartPage() {
-  const [cart, setCart]         = useState<CartItem[]>([])
-  const [loading, setLoading]   = useState(false)
-  const [form, setForm]         = useState<CheckoutForm>({
+  const [cart, setCart]               = useState<CartItem[]>([])
+  const [initialLoading, setInitial]  = useState(true)
+  const [loading, setLoading]         = useState(false)
+  const [form, setForm]               = useState<CheckoutForm>({
     customerEmail: "", customerName: "", phone: "",
     countryCode: "US", province: "", city: "", address: "", zipCode: "",
   })
 
   useEffect(() => {
-    setCart(JSON.parse(localStorage.getItem("cart") ?? "[]"))
+    fetch("/api/cart")
+      .then((r) => r.json())
+      .then((data) => setCart(data.items ?? []))
+      .catch(() => setCart([]))
+      .finally(() => setInitial(false))
   }, [])
 
-  const updateCart = (newCart: CartItem[]) => {
-    setCart(newCart)
-    localStorage.setItem("cart", JSON.stringify(newCart))
-    window.dispatchEvent(new Event("cart-updated"))
+  const changeQty = async (id: string, delta: number) => {
+    const item = cart.find((i) => i.id === id)
+    if (!item) return
+    const quantity = Math.max(1, item.quantity + delta)
+
+    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, quantity } : i)))
+    const res = await fetch(`/api/cart/${id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ quantity }),
+    })
+    const data = await res.json()
+    if (data.items) setCart(data.items)
   }
 
-  const changeQty = (key: string, delta: number) => {
-    const updated = cart.map((item) =>
-      item.key === key ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-    )
-    updateCart(updated)
+  const removeItem = async (id: string) => {
+    setCart((prev) => prev.filter((i) => i.id !== id))
+    const res = await fetch(`/api/cart/${id}`, { method: "DELETE" })
+    const data = await res.json()
+    if (data.items) setCart(data.items)
   }
-
-  const removeItem = (key: string) => updateCart(cart.filter((i) => i.key !== key))
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
@@ -89,10 +101,10 @@ export default function CartPage() {
       })
 
       const data = await res.json()
-      if (data.checkoutUrl) {
-        localStorage.removeItem("cart")
+      if (data.approveUrl) {
+        await fetch("/api/cart", { method: "DELETE" })
         window.dispatchEvent(new Event("cart-updated"))
-        window.location.href = data.checkoutUrl
+        window.location.href = data.approveUrl
       } else {
         const message = Array.isArray(data.error)
           ? data.error.map((e: { message: string }) => e.message).join(", ")
@@ -105,6 +117,15 @@ export default function CartPage() {
       setLoading(false)
     }
   }
+
+  if (initialLoading) return (
+    <div className="bg-cream min-h-screen">
+      <ShopHeader />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    </div>
+  )
 
   if (cart.length === 0) return (
     <div className="bg-cream min-h-screen">
@@ -130,7 +151,7 @@ export default function CartPage() {
           {/* Товары */}
           <div className="lg:col-span-2 space-y-4">
             {cart.map((item) => (
-              <div key={item.key} className="bg-card rounded-2xl border border-text/10 shadow-sm p-4 flex gap-4">
+              <div key={item.id} className="bg-card rounded-2xl border border-text/10 shadow-sm p-4 flex gap-4">
                 <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-cream shrink-0">
                   {item.image
                     ? <Image src={item.image} alt={item.title} fill className="object-cover" />
@@ -142,11 +163,11 @@ export default function CartPage() {
                   <p className="text-primary font-bold mt-1">${item.price.toFixed(2)}</p>
                   <div className="flex items-center gap-3 mt-2">
                     <div className="flex items-center border border-text/15 rounded-lg overflow-hidden">
-                      <button onClick={() => changeQty(item.key, -1)} className="px-2.5 py-1 text-text/50 hover:bg-text/5">−</button>
+                      <button onClick={() => changeQty(item.id, -1)} className="px-2.5 py-1 text-text/50 hover:bg-text/5">−</button>
                       <span className="px-3 py-1 text-sm font-medium">{item.quantity}</span>
-                      <button onClick={() => changeQty(item.key, +1)} className="px-2.5 py-1 text-text/50 hover:bg-text/5">+</button>
+                      <button onClick={() => changeQty(item.id, +1)} className="px-2.5 py-1 text-text/50 hover:bg-text/5">+</button>
                     </div>
-                    <button onClick={() => removeItem(item.key)} className="text-sm text-red-400 hover:text-red-600 transition-colors">Remove</button>
+                    <button onClick={() => removeItem(item.id)} className="text-sm text-red-400 hover:text-red-600 transition-colors">Remove</button>
                   </div>
                 </div>
                 <p className="font-bold text-text shrink-0">${(item.price * item.quantity).toFixed(2)}</p>
@@ -249,7 +270,7 @@ export default function CartPage() {
                     disabled={loading}
                     className="w-full bg-primary text-cream font-bold py-3.5 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed tracking-wide uppercase text-sm"
                   >
-                    {loading ? "Creating order..." : "Pay with Stripe →"}
+                    {loading ? "Creating order..." : "Pay with PayPal →"}
                   </button>
                 </div>
               </form>
